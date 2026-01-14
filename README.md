@@ -56,7 +56,7 @@ graph TD
     X0 --> XOR
 
     %% Output State (Shifted)
-    subgraph Output [Выход (Сдвиг)]
+    subgraph Output [Выход - Сдвиг]
         X0_new[x0']
         X1_new[x1']
         X2_new[x2']
