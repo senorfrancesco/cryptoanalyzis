@@ -1,0 +1,25 @@
+# C++ Build Artifacts
+generator
+analysis
+attack
+*.o
+*.exe
+*.out
+
+# Large Data Files
+pairs_data.txt
+pairs_data_part_*.txt
+
+# Analysis Results
+diff_round_5_top.txt
+diff_round_5_by_dX.txt
+last_round_key_guess.txt
+
+# Editor/IDE Configuration
+.vscode/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
