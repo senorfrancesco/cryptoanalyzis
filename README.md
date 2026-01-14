@@ -34,36 +34,45 @@ $$F(a, b, k) = G(a ⊕ G(k ⊕ b))$$
 
 ```mermaid
 graph TD
-    %% Входные данные
-    subgraph Input [Вход]
-        x0[x0]
-        x1[x1]
-        x2[x2]
-        x3[x3]
+    %% Input State
+    subgraph Input [Входное состояние]
+        X0[x0]
+        X1[x1]
+        X2[x2]
+        X3[x3]
     end
 
-    %% Основная логика
-    Key(Ключ k) --> F_func[Функция F]
-    x2 --> F_func
-    
-    F_func --> XOR_node((XOR))
-    x0 --> XOR_node
-    
-    %% Результат XOR
-    XOR_node --> x0_prime[x0']
+    %% Round Function Logic
+    K(Key k)
+    F_Func[Функция F]
+    XOR((XOR))
 
-    %% Прямые связи (проходят без изменений)
-    x1 --> x1_out
-    x2 --> x2_out
-    x3 --> x3_out
+    %% Connections
+    X2 --> F_Func
+    X3 --> F_Func
+    K -.-> F_Func
+    
+    F_Func --> XOR
+    X0 --> XOR
 
-    %% Выходные данные
-    subgraph Output [Выход]
-        x1_out[x1]
-        x2_out[x2]
-        x3_out[x3]
-        x0_prime
+    %% Output State (Shifted)
+    subgraph Output [Выход (Сдвиг)]
+        X0_new[x0']
+        X1_new[x1']
+        X2_new[x2']
+        X3_new[x3']
     end
+
+    %% Wiring for Shift: x0<-x1, x1<-x2, x2<-x3, x3<-temp
+    X1 --> X0_new
+    X2 --> X1_new
+    X3 --> X2_new
+    XOR --> X3_new
+
+    %% Styling
+    style F_Func fill:#f9f,stroke:#333,stroke-width:2px
+    style XOR fill:#bbf,stroke:#333,stroke-width:2px
+    style K fill:#ff9,stroke:#333,stroke-dasharray: 5 5
 ```
 
 ---
