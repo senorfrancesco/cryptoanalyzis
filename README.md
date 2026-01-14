@@ -128,21 +128,21 @@ graph TD
     end
 
     subgraph Guessing [Перебор ключа K]
-        K_cand{Кандидат K?}
+        K_cand{"Кандидат K?"}
     end
 
     subgraph StepBack [Откат раунда 6]
         Z[Состояние Z]
         Zp[Состояние Z']
         
-        Logic1[Z = Decrypt(Y, K)]
-        Logic2[Z' = Decrypt(Y', K)]
+        Logic1["Z = Decrypt(Y, K)"]
+        Logic2["Z' = Decrypt(Y', K)"]
     end
 
     subgraph Check [Проверка разности]
-        Calc_dZ[Вычисление dZ = Z XOR Z']
+        Calc_dZ["Вычисление dZ = Z XOR Z'"]
         Target_dZ[Ожидаемая dZ из анализа]
-        Match{Совпало?}
+        Match{"Совпало?"}
     end
 
     Result[+1 балл ключу K]
