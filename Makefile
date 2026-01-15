@@ -1,38 +1,57 @@
 CXX = g++
-CXXFLAGS = -O3 -pthread -std=c++17 -Wall
+CXXFLAGS = -O3 -pthread -std=c++17 -Wall -Iinclude
 
-# Targets
-all: generator analysis attack linear_search
+# Исходники и цели
+SRC_DIFF = src/differential
+SRC_LIN = src/linear
 
-generator: generator_of_data.cpp zmak.h
-	$(CXX) $(CXXFLAGS) generator_of_data.cpp -o generator
+# Основные цели
+all: differential linear
 
-analysis: analysis_attack.cpp zmak.h
-	$(CXX) $(CXXFLAGS) analysis_attack.cpp -o analysis
+differential: generator analysis attack
+linear: linear_search generator_linear attack_linear
 
-attack: attack_last_round.cpp zmak.h
-	$(CXX) $(CXXFLAGS) attack_last_round.cpp -o attack
+# --- Differential Cryptanalysis ---
 
-# --- Linear Cryptanalysis Tools ---
+generator: $(SRC_DIFF)/generator_of_data.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/generator_of_data.cpp -o generator
 
-linear_search: linear_search.cpp zmak.h
-	$(CXX) $(CXXFLAGS) linear_search.cpp -o linear_search
+analysis: $(SRC_DIFF)/analysis_attack.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/analysis_attack.cpp -o analysis
 
-generator_linear: generator_linear.cpp zmak.h
-	$(CXX) $(CXXFLAGS) generator_linear.cpp -o generator_linear
+attack: $(SRC_DIFF)/attack_last_round.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/attack_last_round.cpp -o attack
 
-attack_linear: attack_linear.cpp zmak.h
-	$(CXX) $(CXXFLAGS) attack_last_round.cpp -o attack # Old differential attack
-	$(CXX) $(CXXFLAGS) attack_linear.cpp -o attack_linear
+# --- Linear Cryptanalysis ---
 
-clean:
-	rm -f generator analysis attack linear_search generator_linear attack_linear pairs_data.txt diff_round_5_top.txt diff_round_5_by_dX.txt last_round_key_guess.txt linear_result_5_rounds.txt linear_data.txt linear_key_guess.txt *.o
+linear_search: $(SRC_LIN)/linear_search.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_LIN)/linear_search.cpp -o linear_search
 
-# Тестовый запуск (полный цикл)
-run_test: all
-	@echo "--- 1. Generating Data ---"
+generator_linear: $(SRC_LIN)/generator_linear.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_LIN)/generator_linear.cpp -o generator_linear
+
+attack_linear: $(SRC_LIN)/attack_linear.cpp include/zmak.h
+	$(CXX) $(CXXFLAGS) $(SRC_LIN)/attack_linear.cpp -o attack_linear
+
+# --- Automation ---
+
+# Полный прогон дифференциальной атаки
+run_diff: differential
+	@echo "--- Running Differential Attack Pipeline ---"
 	./generator
-	@echo "--- 2. Analyzing Data ---"
 	./analysis
-	@echo "--- 3. Running Attack ---"
 	./attack
+
+# Полный прогон линейной атаки
+run_linear: linear
+	@echo "--- Running Linear Attack Pipeline ---"
+	./linear_search
+	./generator_linear
+	./attack_linear
+
+# Очистка
+clean:
+	rm -f generator analysis attack linear_search generator_linear attack_linear
+	rm -f pairs_data.txt diff_round_5_top.txt diff_round_5_by_dX.txt last_round_key_guess.txt
+	rm -f linear_result_5_rounds.txt linear_data.txt linear_key_guess.txt
+	rm -f *.o
