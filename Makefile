@@ -1,24 +1,32 @@
 CXX = g++
 CXXFLAGS = -O3 -pthread -std=c++17 -Wall
 
-# Цели по умолчанию
-all: generator analysis attack
+# Targets
+all: generator analysis attack linear_search
 
-# Компиляция генератора
 generator: generator_of_data.cpp zmak.h
 	$(CXX) $(CXXFLAGS) generator_of_data.cpp -o generator
 
-# Компиляция анализатора
 analysis: analysis_attack.cpp zmak.h
 	$(CXX) $(CXXFLAGS) analysis_attack.cpp -o analysis
 
-# Компиляция атаки
 attack: attack_last_round.cpp zmak.h
 	$(CXX) $(CXXFLAGS) attack_last_round.cpp -o attack
 
-# Очистка
+# --- Linear Cryptanalysis Tools ---
+
+linear_search: linear_search.cpp zmak.h
+	$(CXX) $(CXXFLAGS) linear_search.cpp -o linear_search
+
+generator_linear: generator_linear.cpp zmak.h
+	$(CXX) $(CXXFLAGS) generator_linear.cpp -o generator_linear
+
+attack_linear: attack_linear.cpp zmak.h
+	$(CXX) $(CXXFLAGS) attack_last_round.cpp -o attack # Old differential attack
+	$(CXX) $(CXXFLAGS) attack_linear.cpp -o attack_linear
+
 clean:
-	rm -f generator analysis attack pairs_data.txt diff_round_5_top.txt diff_round_5_by_dX.txt last_round_key_guess.txt *.o
+	rm -f generator analysis attack linear_search generator_linear attack_linear pairs_data.txt diff_round_5_top.txt diff_round_5_by_dX.txt last_round_key_guess.txt linear_result_5_rounds.txt linear_data.txt linear_key_guess.txt *.o
 
 # Тестовый запуск (полный цикл)
 run_test: all

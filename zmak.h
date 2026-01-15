@@ -51,6 +51,32 @@ inline void printBlock(const Block& b) {
               << (int)b.x[2] << " " << (int)b.x[3] << "]";
 }
 
+// --- УТИЛИТЫ ДЛЯ ЛИНЕЙНОГО АНАЛИЗА ---
+
+// Упаковка Block в uint16_t: x0 (старшие) .. x3 (младшие)
+// Порядок: [x0][x1][x2][x3] -> 0x0123
+inline uint16_t packBlock(const Block& b) {
+    return (uint16_t)((b.x[0] << 12) | (b.x[1] << 8) | (b.x[2] << 4) | b.x[3]);
+}
+
+// Распаковка uint16_t в Block
+inline Block unpackBlock(uint16_t val) {
+    Block b;
+    b.x[0] = (val >> 12) & 0xF;
+    b.x[1] = (val >> 8) & 0xF;
+    b.x[2] = (val >> 4) & 0xF;
+    b.x[3] = val & 0xF;
+    return b;
+}
+
+// Функция четности (Parity): 1 если число единиц нечетное, 0 если четное.
+// Аналог скалярного произведения векторов.
+inline uint8_t parity(uint16_t val) {
+    return __builtin_parity(val); 
+    // Для компиляторов без builtin: 
+    // val ^= val >> 8; val ^= val >> 4; val ^= val >> 2; val ^= val >> 1; return val & 1;
+}
+
 // --- ЯДРО ШИФРА (CORE LOGIC) ---
 
 // Функция раунда F(X2, X3, k) = G(X2 ^ G(k ^ X3))
