@@ -13,24 +13,24 @@ linear: linear_search generator_linear attack_linear
 
 # --- Differential Cryptanalysis ---
 
-generator: $(SRC_DIFF)/generator_of_data.cpp include/zmak.h
+generator: $(SRC_DIFF)/generator_of_data.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/generator_of_data.cpp -o generator
 
-analysis: $(SRC_DIFF)/analysis_attack.cpp include/zmak.h
+analysis: $(SRC_DIFF)/analysis_attack.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/analysis_attack.cpp -o analysis
 
-attack: $(SRC_DIFF)/attack_last_round.cpp include/zmak.h
+attack: $(SRC_DIFF)/attack_last_round.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_DIFF)/attack_last_round.cpp -o attack
 
 # --- Linear Cryptanalysis ---
 
-linear_search: $(SRC_LIN)/linear_search.cpp include/zmak.h
+linear_search: $(SRC_LIN)/linear_search.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_LIN)/linear_search.cpp -o linear_search
 
-generator_linear: $(SRC_LIN)/generator_linear.cpp include/zmak.h
+generator_linear: $(SRC_LIN)/generator_linear.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_LIN)/generator_linear.cpp -o generator_linear
 
-attack_linear: $(SRC_LIN)/attack_linear.cpp include/zmak.h
+attack_linear: $(SRC_LIN)/attack_linear.cpp include/cipher_engine.h
 	$(CXX) $(CXXFLAGS) $(SRC_LIN)/attack_linear.cpp -o attack_linear
 
 # --- Automation ---

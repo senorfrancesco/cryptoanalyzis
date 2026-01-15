@@ -1,5 +1,5 @@
-#ifndef ZMAK_H
-#define ZMAK_H
+#ifndef CIPHER_ENGINE_H
+#define CIPHER_ENGINE_H
 
 #include <cstdint>
 #include <vector>
@@ -132,4 +132,4 @@ inline void decryptOneRound(Block& b, uint8_t k) {
     b.x[0] = old_x0;
 }
 
-#endif // ZMAK_H
+#endif // CIPHER_ENGINE_H

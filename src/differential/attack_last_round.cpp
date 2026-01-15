@@ -5,7 +5,7 @@
 #include <atomic>
 #include <algorithm>
 #include <iomanip>
-#include "zmak.h"
+#include "cipher_engine.h"
 
 using namespace std;
 

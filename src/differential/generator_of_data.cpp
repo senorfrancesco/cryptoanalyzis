@@ -4,7 +4,7 @@
 #include <thread>
 #include <string>
 #include <algorithm>
-#include "zmak.h"
+#include "cipher_engine.h"
 
 using namespace std;
 

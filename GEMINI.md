@@ -1,4 +1,4 @@
-# ZMAK Cryptographic Analysis
+# GFN-16 Cryptographic Analysis
 
 ## Project Overview
 
@@ -8,7 +8,7 @@ This project implements a set of tools for the differential cryptanalysis of a c
 
 ## Key Files
 
-*   **`zmak.h`** (New):
+*   **`cipher_engine.h`** (New):
     *   **Core Header.** Contains the definition of the cipher logic, constants (S-Box, Keys), and data structures (`Block`).
     *   Implements the new Variant 5 architecture (4-bit nibbles).
     *   Acts as the single source of truth for the encryption algorithm to ensure consistency across all tools.
@@ -18,17 +18,17 @@ This project implements a set of tools for the differential cryptanalysis of a c
     *   Includes a `run_test` target to execute the full analysis pipeline automatically.
 
 *   **`generator_of_data.cpp`**:
-    *   *Under Construction:* Needs update to use `zmak.h`.
+    *   *Under Construction:* Needs update to use `cipher_engine.h`.
     *   Generates pairs of plaintexts with specific input differences.
     *   Outputs `pairs_data.txt`.
 
 *   **`analysis_attack.cpp`**:
-    *   *Under Construction:* Needs update to use `zmak.h`.
+    *   *Under Construction:* Needs update to use `cipher_engine.h`.
     *   Analyzes the generated data to find high-probability differential characteristics for 5 rounds.
     *   Outputs results to `diff_round_5_top.txt`.
 
 *   **`attack_last_round.cpp`**:
-    *   *Under Construction:* Needs update to use `zmak.h`.
+    *   *Under Construction:* Needs update to use `cipher_engine.h`.
     *   Performs the key recovery attack on the last round.
 
 ## Build and Run

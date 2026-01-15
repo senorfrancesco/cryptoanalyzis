@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <iomanip>
 #include <atomic>
-#include "zmak.h"
+#include "cipher_engine.h"
 
 using namespace std;
 
