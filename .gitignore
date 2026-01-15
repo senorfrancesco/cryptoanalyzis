@@ -2,6 +2,9 @@
 generator
 analysis
 attack
+linear_search
+generator_linear
+attack_linear
 *.o
 *.exe
 *.out
@@ -9,11 +12,14 @@ attack
 # Large Data Files
 pairs_data.txt
 pairs_data_part_*.txt
+linear_data.txt
 
 # Analysis Results
 diff_round_5_top.txt
 diff_round_5_by_dX.txt
 last_round_key_guess.txt
+linear_result_5_rounds.txt
+linear_key_guess.txt
 
 # Editor/IDE Configuration
 .vscode/
