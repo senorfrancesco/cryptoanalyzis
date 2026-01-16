@@ -137,6 +137,65 @@ int main() {
     cout << "\n--- TOP ANALYTICAL DIFFERENTIALS (5 Rounds) ---\\n";
     cout << "Detailed log saved to trail_debug.txt\n";
     
+    // Функция трассировки лучшего пути
+    auto trace_path = [&](uint16_t start_val) {
+        cout << "\n--- TRACING BEST TRAIL (Detailed) ---\n";
+        cout << "Start dX: " << hex << start_val << dec << endl;
+        
+        int dx[4];
+        unpack(start_val, dx[0], dx[1], dx[2], dx[3]);
+        double total_p = 1.0;
+
+        for(int r=1; r<=ROUNDS; ++r) {
+            cout << "Round " << r << ": Input (" 
+                 << dx[0]<<","<<dx[1]<<","<<dx[2]<<","<<dx[3] << ")\n";
+            
+            // 1. Ищем лучший dF
+            int best_dF = -1;
+            double best_p = -1.0;
+
+            for(int dF=0; dF<16; ++dF) {
+                double p = get_prob_F(dx[2], dx[3], dF);
+                if (p > best_p) {
+                    best_p = p;
+                    best_dF = dF;
+                }
+            }
+            
+            // 2. Детализация вероятности для лучшего dF
+            cout << "  F(x2=" << dx[2] << ", x3=" << dx[3] << ") -> dF=" << best_dF 
+                 << " (Total P=" << best_p << ")\n";
+            
+            // Восстанавливаем, из чего сложилась эта вероятность
+            cout << "     Breakdown:\n";
+            for (int d_mid = 0; d_mid < 16; ++d_mid) {
+                double p1 = DDT_PROB[dx[3]][d_mid]; // G(x3) -> mid
+                if (p1 == 0) continue;
+                
+                int second_in = dx[2] ^ d_mid;
+                double p2 = DDT_PROB[second_in][best_dF]; // G(x2^mid) -> out
+                
+                if (p2 > 0) {
+                    cout << "      G(" << dx[3] << ")->" << hex << uppercase << d_mid << dec 
+                         << " (p=" << p1 << ") AND G(" << second_in << ")->" << best_dF 
+                         << " (p=" << p2 << ") => Path P=" << p1*p2 << "\n";
+                }
+            }
+            
+            total_p *= best_p;
+            
+            // Update state
+            int temp = dx[0] ^ best_dF;
+            dx[0] = dx[1];
+            dx[1] = dx[2];
+            dx[2] = dx[3];
+            dx[3] = temp;
+            
+            cout << "  Output (" << dx[0]<<","<<dx[1]<<","<<dx[2]<<","<<dx[3] << ")\n";
+            cout << "  Accumulated Prob: " << total_p << endl;
+        }
+    };
+
     ofstream out("trail_results.txt");
     // Пишем данные лучшей траектории
     if (!current_states.empty()) {
@@ -151,7 +210,10 @@ int main() {
              
         out << in[0]<<" "<<in[1]<<" "<<in[2]<<" "<<in[3] << " "
             << out_d[0]<<" "<<out_d[1]<<" "<<out_d[2]<<" "<<out_d[3] << " "
-            << s.prob << "\n"; // Добавили вероятность в конец файла
+            << s.prob << "\n";
+            
+        // Запускаем трассировку
+        trace_path(s.initial_dx);
     }
     out.close();
 
