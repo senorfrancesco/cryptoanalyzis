@@ -9,117 +9,99 @@
 
 using namespace std;
 
-// --- КОНФИГУРАЦИЯ АТАКИ ---
-// ВНИМАНИЕ: Эти значения нужно обновить после запуска ./analysis
-// Возьмите лучший dX -> dY из файла diff_round_5_top.txt
-const uint8_t T_dX[4] = { 9, 4, 12, 0 }; 
-const uint8_t T_dY[4] = { 0, 0, 0, 2 }; 
+// Целевые характеристики (загружаются из файла)
+int T_dX[4] = {0};
+int T_dY[4] = {0};
+
+void load_trail_targets() {
+    ifstream in("trail_results.txt");
+    if (!in.is_open()) {
+        cerr << "Error: trail_results.txt not found.\n";
+        exit(1);
+    }
+    // Читаем: in0 in1 in2 in3 out0 out1 out2 out3
+    in >> T_dX[0] >> T_dX[1] >> T_dX[2] >> T_dX[3]
+       >> T_dY[0] >> T_dY[1] >> T_dY[2] >> T_dY[3];
+    in.close();
+    
+    cout << "Loaded Targets:\n";
+    cout << "  dX: " << T_dX[0] << " " << T_dX[1] << " " << T_dX[2] << " " << T_dX[3] << endl;
+    cout << "  dY: " << T_dY[0] << " " << T_dY[1] << " " << T_dY[2] << " " << T_dY[3] << endl;
+}
 
 struct PairData {
-    Block Y;   // Ciphertext 1
-    Block Yp;  // Ciphertext 2
-    Block dX;  // Input difference (for filtering)
+    Block Y;
+    Block Yp;
 };
 
-// Функция загрузки и фильтрации данных
-vector<PairData> loadFilteredPairs(const string& filename) {
+// Загрузка данных (теперь без фильтрации, т.к. генератор уже отфильтровал)
+vector<PairData> loadPairs(const string& filename) {
     ifstream fin(filename);
     vector<PairData> data;
     if (!fin.is_open()) return data;
 
     int vals[16];
-    // Формат файла: X(4) dX(4) Y(4) Yp(4)
-    // Индексы:
-    // X: 0-3
-    // dX: 4-7
-    // Y: 8-11
-    // Yp: 12-15
-
+    // Формат: X(4) dX(4) Y(4) Yp(4)
     while (fin >> vals[0]) {
         for (int i = 1; i < 16; ++i) fin >> vals[i];
-
-        // Проверяем, совпадает ли dX с целевым
-        if (vals[4] == T_dX[0] && vals[5] == T_dX[1] &&
-            vals[6] == T_dX[2] && vals[7] == T_dX[3]) 
-        {
-            PairData p;
-            p.dX.x[0] = vals[4]; p.dX.x[1] = vals[5]; p.dX.x[2] = vals[6]; p.dX.x[3] = vals[7];
-            
-            p.Y.x[0] = vals[8]; p.Y.x[1] = vals[9]; p.Y.x[2] = vals[10]; p.Y.x[3] = vals[11];
-            
-            p.Yp.x[0] = vals[12]; p.Yp.x[1] = vals[13]; p.Yp.x[2] = vals[14]; p.Yp.x[3] = vals[15];
-            
-            data.push_back(p);
-        }
+        
+        PairData p;
+        p.Y.x[0] = vals[8]; p.Y.x[1] = vals[9]; p.Y.x[2] = vals[10]; p.Y.x[3] = vals[11];
+        p.Yp.x[0] = vals[12]; p.Yp.x[1] = vals[13]; p.Yp.x[2] = vals[14]; p.Yp.x[3] = vals[15];
+        data.push_back(p);
     }
     return data;
 }
 
 int main() {
-    cout << "--- Key Recovery Attack (Variant 5) ---" << endl;
-    cout << "Target dX: " << (int)T_dX[0] << " " << (int)T_dX[1] << " " << (int)T_dX[2] << " " << (int)T_dX[3] << endl;
-    cout << "Target dY: " << (int)T_dY[0] << " " << (int)T_dY[1] << " " << (int)T_dY[2] << " " << (int)T_dY[3] << endl;
+    load_trail_targets();
 
-    if (T_dX[0] == 0 && T_dX[1] == 0 && T_dX[2] == 0 && T_dX[3] == 0) {
-        cerr << "WARNING: Target dX is all zeros. Please update T_dX and T_dY in attack_last_round.cpp based on analysis results!" << endl;
-    }
-
-    // 1. Загрузка данных
-    vector<PairData> data = loadFilteredPairs("pairs_data.txt");
+    vector<PairData> data = loadPairs("pairs_data.txt");
     if (data.empty()) {
-        cerr << "No pairs found with the specified input difference dX.\n";
+        cerr << "No pairs data found.\n";
         return 1;
     }
-    cout << "Loaded and filtered " << data.size() << " pairs." << endl;
+    cout << "Loaded " << data.size() << " pairs for attack.\n";
 
-    // 2. Перебор ключа последнего (6-го) раунда
-    // Ключ 4-битный: 0..15
     vector<long long> key_scores(16, 0);
 
+    // Атака на ключ 6-го раунда
     for (int k = 0; k < 16; ++k) {
         uint8_t key_guess = (uint8_t)k;
         
         for (const auto& p : data) {
-            // Дешифруем Y на 1 раунд назад
             Block Z = p.Y;
             decryptOneRound(Z, key_guess);
 
-            // Дешифруем Yp на 1 раунд назад
             Block Zp = p.Yp;
             decryptOneRound(Zp, key_guess);
 
-            // Считаем разность после 5 раундов
+            // Проверка на совпадение с TARGET_dY
             bool match = true;
             for(int i=0; i<4; ++i) {
-                if ((Z.x[i] ^ Zp.x[i]) != T_dY[i]) {
+                int diff = Z.x[i] ^ Zp.x[i];
+                if (diff != T_dY[i]) {
                     match = false;
                     break;
                 }
             }
-
-            if (match) {
-                key_scores[k]++;
-            }
+            if (match) key_scores[k]++;
         }
     }
 
-    // 3. Вывод результатов
+    // Вывод
     ofstream fout("last_round_key_guess.txt");
-    cout << "\nTop Key Candidates:\n";
-    fout << "Key Candidates (sorted by score):\n";
-
+    cout << "\n--- Attack Results ---\n";
     vector<pair<long long, int>> results;
     for(int k=0; k<16; ++k) results.push_back({key_scores[k], k});
     
-    // Сортировка по убыванию очков
     sort(results.begin(), results.end(), [](auto& a, auto& b) { return a.first > b.first; });
 
     for(const auto& res : results) {
-        cout << "Key = " << res.second << " (" << hex << res.second << dec << ") | Hits: " << res.first << endl;
+        cout << "Key = " << res.second << " (0x" << hex << res.second << dec << ") | Hits: " << res.first << endl;
         fout << "Key=" << res.second << " Hits=" << res.first << "\n";
     }
     fout.close();
-        cout << "Results saved to last_round_key_guess.txt" << endl;
-        return 0;
-    }
-    
+
+    return 0;
+}

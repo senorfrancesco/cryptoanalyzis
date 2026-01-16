@@ -4,92 +4,110 @@
 #include <thread>
 #include <string>
 #include <algorithm>
+#include <cmath>
 #include "cipher_engine.h"
 
 using namespace std;
 
-// Настройки генерации
-const int X_LIMIT = 64;       // Количество различных открытых текстов для каждой разности
-const int NUM_THREADS = 16;    // Количество потоков
+const int NUM_THREADS = 16;
 
-void worker(int tid, int start_X, int end_X) {
+int TARGET_dX[4] = {0};
+double TARGET_PROB = 0.0;
+int PAIRS_COUNT = 0;
+
+void load_target_dx() {
+    ifstream in("trail_results.txt");
+    if (!in.is_open()) {
+        cerr << "Error: trail_results.txt not found.\n";
+        exit(1);
+    }
+    // Читаем: dx0 dx1 dx2 dx3 dy0 dy1 dy2 dy3 PROB
+    // dy нам тут не нужны, но надо их прочитать, чтобы добраться до prob
+    int garbage;
+    in >> TARGET_dX[0] >> TARGET_dX[1] >> TARGET_dX[2] >> TARGET_dX[3]
+       >> garbage >> garbage >> garbage >> garbage
+       >> TARGET_PROB;
+    in.close();
+    
+    // Расчет количества пар: N = ceil(4.0 / P)
+    // Если P очень маленькая, ограничиваем разумным числом (например 10 млн)
+    long long needed = (long long)ceil(8.0 / TARGET_PROB); // Взял запас 8/P для надежности
+    if (needed > 10000000) needed = 10000000;
+    if (needed < 1000) needed = 1000; // Минимум
+    
+    PAIRS_COUNT = (int)needed;
+
+    cout << "Loaded Target dX: " << TARGET_dX[0] << " " << TARGET_dX[1] 
+         << " " << TARGET_dX[2] << " " << TARGET_dX[3] << endl;
+    cout << "Theoretical Prob: " << TARGET_PROB << endl;
+    cout << "Generating " << PAIRS_COUNT << " pairs (Target ~ 8/P)...\n";
+}
+
+void worker(int tid, int count) {
     string fname = "pairs_data_part_" + to_string(tid) + ".txt";
     ofstream fout(fname);
-    if (!fout.is_open()) return;
+    uint32_t seed = 12345 + tid * 999;
+    
+    for (int i = 0; i < count; ++i) {
+        seed = seed * 1664525 + 1013904223;
+        int valX = seed & 0xFFFF;
 
-    for (int valX = start_X; valX < end_X; ++valX) {
-        // Формируем базовый блок X из текущего индекса
-        // Для разнообразия можно использовать разные биты valX
         Block X;
-        X.x[0] = (valX >> 4) & 0xF;
-        X.x[1] = valX & 0xF;
-        X.x[2] = (valX >> 8) & 0xF; // Добавляем еще битов, если X_LIMIT > 256
-        X.x[3] = (valX >> 12) & 0xF;
+        X.x[0] = (valX >> 12) & 0xF;
+        X.x[1] = (valX >> 8) & 0xF;
+        X.x[2] = (valX >> 4) & 0xF;
+        X.x[3] = valX & 0xF;
 
-        // Шифруем базовый текст
         Block base = X;
         encrypt(base);
 
-        // Перебираем все возможные входные разности dX (16 бит = 65536 вариантов)
-        for (int valDX = 0; valDX < 65536; ++valDX) {
-            uint8_t dX0 = (valDX >> 12) & 0xF;
-            uint8_t dX1 = (valDX >> 8) & 0xF;
-            uint8_t dX2 = (valDX >> 4) & 0xF;
-            uint8_t dX3 = valDX & 0xF;
+        Block Xp = X;
+        Xp.x[0] ^= TARGET_dX[0];
+        Xp.x[1] ^= TARGET_dX[1];
+        Xp.x[2] ^= TARGET_dX[2];
+        Xp.x[3] ^= TARGET_dX[3];
 
-            // Создаем модифицированный текст X' = X ^ dX
-            Block Xp = X;
-            Xp.x[0] ^= dX0; 
-            Xp.x[1] ^= dX1; 
-            Xp.x[2] ^= dX2; 
-            Xp.x[3] ^= dX3;
+        Block mod = Xp;
+        encrypt(mod);
 
-            // Шифруем модифицированный текст
-            Block mod = Xp;
-            encrypt(mod);
-
-            // Записываем данные в формате: 
-            // X0 X1 X2 X3  dX0 dX1 dX2 dX3  Y0 Y1 Y2 Y3  Y0p Y1p Y2p Y3p
-            fout << (int)X.x[0] << " " << (int)X.x[1] << " " << (int)X.x[2] << " " << (int)X.x[3] << " "
-                 << (int)dX0 << " " << (int)dX1 << " " << (int)dX2 << " " << (int)dX3 << " "
-                 << (int)base.x[0] << " " << (int)base.x[1] << " " << (int)base.x[2] << " " << (int)base.x[3] << " "
-                 << (int)mod.x[0] << " " << (int)mod.x[1] << " " << (int)mod.x[2] << " " << (int)mod.x[3] << "\n";
-        }
-        
-        if (tid == 0 && valX % 8 == 0) {
-            cout << "Thread 0 progress: " << (valX - start_X) << "/" << (end_X - start_X) << " texts processed\n";
-        }
+        fout << (int)X.x[0] << " " << (int)X.x[1] << " " << (int)X.x[2] << " " << (int)X.x[3] << " "
+             << (int)TARGET_dX[0] << " " << (int)TARGET_dX[1] << " " << (int)TARGET_dX[2] << " " << (int)TARGET_dX[3] << " "
+             << (int)base.x[0] << " " << (int)base.x[1] << " " << (int)base.x[2] << " " << (int)base.x[3] << " "
+             << (int)mod.x[0] << " " << (int)mod.x[1] << " " << (int)mod.x[2] << " " << (int)mod.x[3] << "\n";
     }
     fout.close();
 }
 
 int main() {
-    cout << "Starting data generation (Variant 5)..." << endl;
+    load_target_dx();
     
-    int perThread = (X_LIMIT + NUM_THREADS - 1) / NUM_THREADS;
     vector<thread> threads;
+    int perThread = PAIRS_COUNT / NUM_THREADS;
+    if (perThread == 0) perThread = 1;
 
     for (int t = 0; t < NUM_THREADS; ++t) {
-        int start = t * perThread;
-        int end = min(X_LIMIT, (t + 1) * perThread);
-        if (start >= end) break;
-        threads.emplace_back(worker, t, start, end);
+        // Коррекция для последнего потока (остаток)
+        int my_count = perThread;
+        if (t == NUM_THREADS - 1) my_count = PAIRS_COUNT - (NUM_THREADS - 1) * perThread;
+        if (my_count <= 0) break;
+        
+        threads.emplace_back(worker, t, my_count);
     }
 
     for (auto& th : threads) th.join();
 
-    // Сборка всех частей в один файл
-    cout << "Merging files..." << endl;
     ofstream out("pairs_data.txt");
-    for (int t = 0; t < (int)threads.size(); ++t) {
+    for (int t = 0; t < NUM_THREADS; ++t) {
         string fname = "pairs_data_part_" + to_string(t) + ".txt";
         ifstream in(fname);
-        out << in.rdbuf();
-        in.close();
-        remove(fname.c_str()); // Удаляем временный файл
+        if(in) {
+            out << in.rdbuf();
+            in.close();
+            remove(fname.c_str());
+        }
     }
     out.close();
+    cout << "Done.\n";
 
-    cout << "Generation complete. Data saved to pairs_data.txt" << endl;
     return 0;
 }
